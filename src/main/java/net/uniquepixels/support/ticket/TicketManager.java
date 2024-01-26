@@ -1,21 +1,25 @@
 package net.uniquepixels.support.ticket;
 
-import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.forums.ForumPost;
 import net.dv8tion.jda.api.entities.channel.forums.ForumTag;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.uniquepixels.support.mongo.DefaultSubscriber;
 import net.uniquepixels.support.mongo.MongoConnection;
 
 import java.awt.*;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class TicketManager {
@@ -31,7 +35,33 @@ public class TicketManager {
         this.guild = guild;
     }
 
-    public void createTicket(Member member, SupportType type, Consumer<ForumChannel> channelConsumer) throws IllegalStateException {
+    private void getTicketCount(Consumer<Long> consumer) {
+
+        AtomicLong atomicLong = new AtomicLong();
+
+        this.mongoConnection.getTicketCollection().countDocuments().subscribe(new DefaultSubscriber<>(aLong -> {
+
+            consumer.accept(aLong.orElse(-1L));
+
+        }, 1L));
+    }
+
+    private void sendCreatedNewTicketNotification(Guild guild, ForumPost channel, SupportType type) {
+
+        TextChannel notificationChannel = guild.getTextChannelById(SUPPORT_MANAGER_CHANNEL_ID);
+
+        notificationChannel.sendMessageEmbeds(
+                new EmbedBuilder()
+                        .setTitle("Benachrichtigung")
+                        .setDescription("Ein neues Ticket wurde in " + channel.getThreadChannel().getAsMention() + " erstellt!")
+                        .addField("Grund", type.getReason(), false)
+                        .setTimestamp(Instant.now())
+                        .build()
+        ).queue();
+
+    }
+
+    public void createTicket(Member member, SupportType type, Consumer<ForumPost> channelConsumer) throws IllegalStateException {
 
         ForumChannel forumChannel = this.guild.getForumChannelById(TICKET_CHANNEL_ID);
 
@@ -43,20 +73,26 @@ public class TicketManager {
         if (optionalForumTag.isEmpty())
             throw new IllegalStateException("ForumTag is null - may not found?");
 
-        forumChannel.createForumPost("#", MessageCreateData.fromEmbeds(this.getTicketCreateEmbed(member, type))).setTags(optionalForumTag.get()).queue(forumPost -> {
+        this.getTicketCount(count -> {
+            forumChannel.createForumPost("#" + count.longValue(), MessageCreateData.fromEmbeds(this.getTicketCreateEmbed(member, type))).setTags(optionalForumTag.get()).queue(forumPost -> {
 
-            forumPost.getThreadChannel().addThreadMember(member).queue();
+                forumPost.getThreadChannel().addThreadMember(member).queue();
 
-            TicketEntry entry = new TicketEntry(member.getId(), type, null);
-            this.saveForumPost(entry);
+                TicketEntry entry = new TicketEntry(member.getId(), type, null);
+                this.saveForumPost(entry);
 
+                forumPost.getThreadChannel().sendMessage("")
+                        .addActionRow(Button.danger("lock-ticket", "Ticket sperren"), Button.danger("close-ticket", "Ticket schließen")).queue();
+
+
+                channelConsumer.accept(forumPost);
+                this.sendCreatedNewTicketNotification(guild, forumPost, type);
+
+            });
         });
-
-        channelConsumer.accept(forumChannel);
     }
 
     private void saveForumPost(TicketEntry entry) {
-
         Executors.newSingleThreadExecutor().submit(() -> {
             MongoCollection<TicketEntry> tickets = this.mongoConnection.getDatabase().getCollection("tickets", TicketEntry.class);
             tickets.insertOne(entry).subscribe(new DefaultSubscriber<>(insertOneResult -> {

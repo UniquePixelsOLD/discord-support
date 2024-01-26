@@ -37,7 +37,7 @@ public class SelectCategoryMenu implements StringSelectionMenu {
 
 
         this.ticketManager.createTicket(member, supportType, forumChannel -> {
-            event.getHook().editOriginal("Das Ticket wurde in " + forumChannel.getAsMention() + " erstellt!").queue();
+            event.getHook().editOriginal("Das Ticket wurde in " + forumChannel.getThreadChannel().getAsMention() + " erstellt!").queue();
         });
     }
 }
