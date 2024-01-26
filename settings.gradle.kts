@@ -1,2 +1,2 @@
-rootProject.name = "discord-template"
+rootProject.name = "discord-support"
 

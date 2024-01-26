@@ -1,4 +1,4 @@
-package net.uniquepixels.bot.mongo;
+package net.uniquepixels.support.mongo;
 
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
