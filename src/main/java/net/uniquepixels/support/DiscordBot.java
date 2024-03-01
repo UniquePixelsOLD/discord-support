@@ -10,10 +10,7 @@ import net.uniquepixels.support.api.APIHandler;
 import net.uniquepixels.support.config.ConfigCommand;
 import net.uniquepixels.support.mongo.MongoConnection;
 import net.uniquepixels.support.ticket.TicketManager;
-import net.uniquepixels.support.ticket.management.CloseTicketButton;
-import net.uniquepixels.support.ticket.management.LockTicketButton;
-import net.uniquepixels.support.ticket.management.RequestSupportButton;
-import net.uniquepixels.support.ticket.management.SelectCategoryMenu;
+import net.uniquepixels.support.ticket.management.*;
 
 public class DiscordBot extends ListenerAdapter {
     public DiscordBot() throws InterruptedException {
@@ -37,6 +34,7 @@ public class DiscordBot extends ListenerAdapter {
         apiHandler.getButtonHandler().getButtons().add(new RequestSupportButton());
         apiHandler.getButtonHandler().getButtons().add(new CloseTicketButton());
         apiHandler.getButtonHandler().getButtons().add(new LockTicketButton());
+        apiHandler.getButtonHandler().getButtons().add(new ArchiveTicketButton());
         apiHandler.getSelectionMenuHandler().getStringSelectionMenus().add(new SelectCategoryMenu(ticketManager));
 
         apiHandler.getCommandHandler().updateCommands(guild);

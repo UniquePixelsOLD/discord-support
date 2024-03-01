@@ -5,6 +5,8 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.uniquepixels.support.api.Roles;
 import net.uniquepixels.support.api.buttons.Button;
 
+import java.util.concurrent.TimeUnit;
+
 public class CloseTicketButton implements Button {
     @Override
     public String id() {
@@ -20,6 +22,6 @@ public class CloseTicketButton implements Button {
             threadChannel.removeThreadMember(threadMember.getMember()).queue();
         });
 
-        threadChannel.getManager().setLocked(true).setArchived(true).queue();
+        threadChannel.getManager().setLocked(true).setArchived(true).queueAfter(1, TimeUnit.SECONDS);
     }
 }
