@@ -22,8 +22,6 @@ public class DiscordBot extends ListenerAdapter {
 
         APIHandler apiHandler = new APIHandler(builder);
 
-        builder.setActivity(Activity.watching("Discord UP Template"));
-
         JDA bot = builder.build().awaitReady();
 
         Guild guild = bot.getGuilds().get(0);
